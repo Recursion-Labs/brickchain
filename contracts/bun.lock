@@ -1,0 +1,14 @@
+{
+  "lockfileVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "@midnight-ntwrk/counter-contract",
+      "dependencies": {
+        "@midnight-ntwrk/ledger": "^4.0.0",
+      },
+    },
+  },
+  "packages": {
+    "@midnight-ntwrk/ledger": ["@midnight-ntwrk/ledger@4.0.0", "", {}, "sha512-cnJisY8uQ4NO54miDnjs/ov6n102ZPfKEPxtiDKVEdlKijcc70jz/CI2yBCc0itlwwaqma7FM2Ou5N4pWpbwbg=="],
+  }
+}
