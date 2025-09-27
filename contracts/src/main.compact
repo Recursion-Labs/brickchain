@@ -40,16 +40,18 @@ export circuit mintTokens(
     nonce: Bytes<32>,
     recipient: Either<ZswapCoinPublicKey, ContractAddress>
 ): CoinInfo {
-    // Mark parameters as witness locally
-    const docHashW = witness docHash;
-    const amountW = witness amount;
-    const nonceW = witness nonce;
-    const recipientW = witness recipient;
+    // Declare witness values inside the body
+    let docHashW = witness docHash;
+    let amountW = witness amount;
+    let nonceW = witness nonce;
+    let recipientW = witness recipient;
 
     assert(properties.member(docHashW), "property not registered");
     const meta = properties.lookup(docHashW);
     const domain = meta.domainSep;
+
     const minted = mintToken(domain, amountW as Uint<64>, nonceW, recipientW);
+
     const newSupply = (meta.totalSupply + amountW) as Uint<128>;
     const newMeta = PropertyMeta {
         domainSep: domain,
@@ -57,45 +59,58 @@ export circuit mintTokens(
         totalSupply: newSupply,
         registered: true
     };
+
     properties.insert(docHashW, newMeta);
     return minted;
 }
 
 // Burn tokens
 export circuit burnCoinImmediate(docHash: Bytes<32>, coin: CoinInfo): [] {
-    const docHashW = witness docHash;
+    let docHashW = witness docHash;
+
     assert(properties.member(docHashW), "property not registered");
     const target = burnAddress();
     createZswapOutput(coin, target);
 }
 
 // Transfers
-export circuit transferQualifiedCoin(inputCoin: QualifiedCoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>, value: Uint<128>): SendResult {
-    const inputCoinW = witness inputCoin;
-    const recipientW = witness recipient;
-    const valueW = witness value;
+export circuit transferQualifiedCoin(
+    inputCoin: QualifiedCoinInfo,
+    recipient: Either<ZswapCoinPublicKey, ContractAddress>,
+    value: Uint<128>
+): SendResult {
+    let inputCoinW = witness inputCoin;
+    let recipientW = witness recipient;
+    let valueW = witness value;
 
     assert(valueW <= inputCoinW.value, "transfer value exceeds input coin value");
     return send(inputCoinW, recipientW, valueW);
 }
 
 // Verification
-export circuit verifyOwnership(coins: Vector<8, QualifiedCoinInfo>, docHash: Bytes<32>, requiredAmount: Uint<128>): Boolean {
-    const docHashW = witness docHash;
+export circuit verifyOwnership(
+    coins: Vector<8, QualifiedCoinInfo>,
+    docHash: Bytes<32>,
+    requiredAmount: Uint<128>
+): Boolean {
+    let docHashW = witness docHash;
+
     assert(properties.member(docHashW), "property not registered");
     const meta = properties.lookup(docHashW);
     const token = meta.tokenType;
     const tokenVec = [token, token, token, token, token, token, token, token];
+
     const totalHeld = fold(sumCoinsIfColor, 0 as Uint<128>, coins, tokenVec);
     return totalHeld >= requiredAmount as Uint<128>;
 }
 
 // Registry
 export circuit registerProperty(docHash: Bytes<32>, domainSep: Bytes<32>): [] {
-    const docHashW = witness docHash;
-    const domainSepW = witness domainSep;
+    let docHashW = witness docHash;
+    let domainSepW = witness domainSep;
 
     assert(!properties.member(docHashW), "property already registered");
+
     const tok = deriveTokenType(domainSepW);
     const meta = PropertyMeta {
         domainSep: domainSepW,
@@ -103,6 +118,7 @@ export circuit registerProperty(docHash: Bytes<32>, domainSep: Bytes<32>): [] {
         totalSupply: 0,
         registered: true
     };
+
     properties.insert(docHashW, meta);
     propertyIndex.pushFront(docHashW);
     round.increment(1);
@@ -110,7 +126,8 @@ export circuit registerProperty(docHash: Bytes<32>, domainSep: Bytes<32>): [] {
 
 // Read property meta
 export circuit readPropertyMeta(docHash: Bytes<32>): PropertyMeta {
-    const docHashW = witness docHash;
+    let docHashW = witness docHash;
+
     assert(properties.member(docHashW), "property not registered");
     return properties.lookup(docHashW);
 }
