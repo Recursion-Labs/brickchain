@@ -20,10 +20,13 @@
     "test": "vitest run",
     "test:compile": "npm run compact && vitest run",
     "build": "rm -rf dist && tsc --project tsconfig.build.json && cp -Rf ./managed ./dist/managed && cp ./src/counter.compact ./dist",
-    "lint": "eslint src",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@midnight-ntwrk/ledger": "^4.0.0"
+    "@midnight-ntwrk/compact-runtime": "^0.8.1",
+    "@midnight-ntwrk/ledger": "^4.0.0",
+    "@midnight-ntwrk/midnight-js-network-id": "^2.0.2",
+    "@midnight-ntwrk/zswap": "^4.0.0",
+    "vitest": "^3.2.4"
   }
 }
