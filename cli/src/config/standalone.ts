@@ -1,11 +1,11 @@
 import path from "path";
-import { NetworkId, setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
+import { NetworkId } from "node_modules/@midnight-ntwrk/midnight-js-network-id/dist/network-id";
+import { setNetworkId } from "@midnight-ntwrk/midnight-js-network-id";
 import { Config, currentDir } from "./global";
 
-
-export class TestnetLocalConfig implements Config {
+export class StandaloneConfig implements Config {
   privateStateStoreName = 'bboard-private-state';
-  logDir = path.resolve(currentDir, '..', 'logs', 'testnet-local', `${new Date().toISOString()}.log`);
+  logDir = path.resolve(currentDir, '..', 'logs', 'standalone', `${new Date().toISOString()}.log`);
   zkConfigPath = path.resolve(currentDir, '..', '..', 'contract', 'src', 'managed', 'bboard');
   indexer = 'http://127.0.0.1:8088/api/v1/graphql';
   indexerWS = 'ws://127.0.0.1:8088/api/v1/graphql/ws';
@@ -13,6 +13,6 @@ export class TestnetLocalConfig implements Config {
   proofServer = 'http://127.0.0.1:6300';
 
   setNetworkId() {
-    setNetworkId(NetworkId.TestNet);
+    setNetworkId(NetworkId.Undeployed);
   }
 }
