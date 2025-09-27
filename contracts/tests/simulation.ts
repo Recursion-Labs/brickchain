@@ -1,3 +1,5 @@
+// simulator.ts
+
 import {
   type CircuitContext,
   QueryContext,
@@ -11,20 +13,27 @@ import {
 } from "../managed/main/contract/index.cjs";
 import { RealEstateTokenPrivateState, witnesses } from "../src";
 
-// This is a simulator for testing the Real Estate Token Compact contract.
+// Simulator wrapper for RealEstateToken Compact contract
 export class RealEstateTokenSimulator {
-  readonly contract: Contract<RealEstateTokenPrivateState>;
-  circuitContext: CircuitContext<RealEstateTokenPrivateState>;
+  private contract: Contract<RealEstateTokenPrivateState>;
+  private circuitContext: CircuitContext<RealEstateTokenPrivateState>;
 
   constructor() {
+    // init contract with witnesses
     this.contract = new Contract<RealEstateTokenPrivateState>(witnesses);
+
+    // build initial state
+    const initCtx = constructorContext(
+      createRealEstateTokenPrivateState(),
+      sampleContractAddress()
+    );
+
     const {
       currentPrivateState,
       currentContractState,
       currentZswapLocalState
-    } = this.contract.initialState(
-      constructorContext(createRealEstateTokenPrivateState(), "0".repeat(64))
-    );
+    } = this.contract.initialState(initCtx);
+
     this.circuitContext = {
       currentPrivateState,
       currentZswapLocalState,
@@ -36,6 +45,7 @@ export class RealEstateTokenSimulator {
     };
   }
 
+  // accessors
   public getLedger(): Ledger {
     return ledger(this.circuitContext.transactionContext.state);
   }
@@ -44,63 +54,65 @@ export class RealEstateTokenSimulator {
     return this.circuitContext.currentPrivateState;
   }
 
-  // ---- Circuits from main.compact ---- //
+  // ---- Contract methods (impure circuits) ----
 
   public mint(to: bigint, amount: bigint): Ledger {
-    this.circuitContext = this.contract.impureCircuits.mint(
+    const result = this.contract.circuits.mint(
       this.circuitContext,
       to,
       amount
-    ).context;
+    );
+    this.circuitContext = result.context;
     return ledger(this.circuitContext.transactionContext.state);
   }
 
   public transfer(from: bigint, to: bigint, amount: bigint): Ledger {
-    this.circuitContext = this.contract.impureCircuits.transfer(
+    const result = this.contract.circuits.transfer(
       this.circuitContext,
       from,
       to,
       amount
-    ).context;
+    );
+    this.circuitContext = result.context;
     return ledger(this.circuitContext.transactionContext.state);
   }
 
   public burn(from: bigint, amount: bigint): Ledger {
-    this.circuitContext = this.contract.impureCircuits.burn(
+    const result = this.contract.circuits.burn(
       this.circuitContext,
       from,
       amount
-    ).context;
+    );
+    this.circuitContext = result.context;
     return ledger(this.circuitContext.transactionContext.state);
   }
 
   public set_property_details(propertyId: Uint8Array, details: Uint8Array): Ledger {
-    this.circuitContext = this.contract.impureCircuits.set_property_details(
+    const result = this.contract.circuits.set_property_details(
       this.circuitContext,
       propertyId,
       details
-    ).context;
+    );
+    this.circuitContext = result.context;
     return ledger(this.circuitContext.transactionContext.state);
   }
 
   public pause_token(): Ledger {
-    this.circuitContext = this.contract.impureCircuits.pause_token(
-      this.circuitContext
-    ).context;
+    const result = this.contract.circuits.pause_token(this.circuitContext);
+    this.circuitContext = result.context;
     return ledger(this.circuitContext.transactionContext.state);
   }
 
   public unpause_token(): Ledger {
-    this.circuitContext = this.contract.impureCircuits.unpause_token(
-      this.circuitContext
-    ).context;
+    const result = this.contract.circuits.unpause_token(this.circuitContext);
+    this.circuitContext = result.context;
     return ledger(this.circuitContext.transactionContext.state);
   }
 }
 
-// ---- Private state initializer ---- //
+// ---- Private state initializer ----
 function createRealEstateTokenPrivateState(): RealEstateTokenPrivateState {
   return {
-    privateKey: undefined,
+    privateKey: undefined
   };
 }

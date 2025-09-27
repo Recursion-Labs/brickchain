@@ -3,11 +3,11 @@ import { describe, it, expect } from "vitest";
 import { NetworkId, setNetworkId } from "@midnight-ntwrk/midnight-js-network-id";
 import { ContractSimulator } from "@midnight-ntwrk/compact-runtime";
 
-import { witnesses } from "./witnesses";
-import type { RealEstateTokenLedger, RealEstateTokenPrivateState } from "./witnesses";
+import { witnesses } from "../src/witnesses";
+import type { RealEstateTokenLedger, RealEstateTokenPrivateState } from "../src/witnesses";
 
 // compiled Compact contract JSON (after `compact compile main.compact .`)
-import contractJson from "./main.json";
+import contractJson from "../managed/main/compiler/contract-info.json";
 
 setNetworkId(NetworkId.Undeployed);
 
