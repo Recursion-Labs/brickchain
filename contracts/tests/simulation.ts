@@ -44,8 +44,9 @@ export class RealEstateTokenSimulator {
     return this.circuitContext.currentPrivateState;
   }
 
+  // ---- Circuits from main.compact ---- //
+
   public mint(to: bigint, amount: bigint): Ledger {
-    // Update the current context to be the result of executing the circuit.
     this.circuitContext = this.contract.impureCircuits.mint(
       this.circuitContext,
       to,
@@ -55,7 +56,6 @@ export class RealEstateTokenSimulator {
   }
 
   public transfer(from: bigint, to: bigint, amount: bigint): Ledger {
-    // Update the current context to be the result of executing the circuit.
     this.circuitContext = this.contract.impureCircuits.transfer(
       this.circuitContext,
       from,
@@ -65,19 +65,7 @@ export class RealEstateTokenSimulator {
     return ledger(this.circuitContext.transactionContext.state);
   }
 
-  public approve(owner: bigint, spender: bigint, amount: bigint): Ledger {
-    // Update the current context to be the result of executing the circuit.
-    this.circuitContext = this.contract.impureCircuits.approve(
-      this.circuitContext,
-      owner,
-      spender,
-      amount
-    ).context;
-    return ledger(this.circuitContext.transactionContext.state);
-  }
-
   public burn(from: bigint, amount: bigint): Ledger {
-    // Update the current context to be the result of executing the circuit.
     this.circuitContext = this.contract.impureCircuits.burn(
       this.circuitContext,
       from,
@@ -86,8 +74,16 @@ export class RealEstateTokenSimulator {
     return ledger(this.circuitContext.transactionContext.state);
   }
 
+  public set_property_details(propertyId: Uint8Array, details: Uint8Array): Ledger {
+    this.circuitContext = this.contract.impureCircuits.set_property_details(
+      this.circuitContext,
+      propertyId,
+      details
+    ).context;
+    return ledger(this.circuitContext.transactionContext.state);
+  }
+
   public pause_token(): Ledger {
-    // Update the current context to be the result of executing the circuit.
     this.circuitContext = this.contract.impureCircuits.pause_token(
       this.circuitContext
     ).context;
@@ -95,53 +91,14 @@ export class RealEstateTokenSimulator {
   }
 
   public unpause_token(): Ledger {
-    // Update the current context to be the result of executing the circuit.
     this.circuitContext = this.contract.impureCircuits.unpause_token(
       this.circuitContext
     ).context;
     return ledger(this.circuitContext.transactionContext.state);
   }
-
-  public register_property(property_id: Uint8Array, owner_id: bigint): Ledger {
-    // Update the current context to be the result of executing the circuit.
-    this.circuitContext = this.contract.impureCircuits.register_property(
-      this.circuitContext,
-      property_id,
-      owner_id
-    ).context;
-    return ledger(this.circuitContext.transactionContext.state);
-  }
-
-  public tokenize_property(property_id: Uint8Array, token_id: bigint): Ledger {
-    // Update the current context to be the result of executing the circuit.
-    this.circuitContext = this.contract.impureCircuits.tokenize_property(
-      this.circuitContext,
-      property_id,
-      token_id
-    ).context;
-    return ledger(this.circuitContext.transactionContext.state);
-  }
-
-  public transfer_property_ownership(property_id: Uint8Array, new_owner_id: bigint): Ledger {
-    // Update the current context to be the result of executing the circuit.
-    this.circuitContext = this.contract.impureCircuits.transfer_property_ownership(
-      this.circuitContext,
-      property_id,
-      new_owner_id
-    ).context;
-    return ledger(this.circuitContext.transactionContext.state);
-  }
-
-  public deactivate_property(property_id: Uint8Array): Ledger {
-    // Update the current context to be the result of executing the circuit.
-    this.circuitContext = this.contract.impureCircuits.deactivate_property(
-      this.circuitContext,
-      property_id
-    ).context;
-    return ledger(this.circuitContext.transactionContext.state);
-  }
 }
 
+// ---- Private state initializer ---- //
 function createRealEstateTokenPrivateState(): RealEstateTokenPrivateState {
   return {
     privateKey: undefined,
