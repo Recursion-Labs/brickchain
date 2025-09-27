@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "build": "rm -rf dist && tsc --project tsconfig.build.json && cp -R ../contract/src/managed dist/contract/src/managed",
+    "build": "rm -rf dist && tsc --project tsconfig.build.json && cp -R ../contracts/managed dist/contracts/managed",
     "ci": "npm run typecheck && npm run lint && npm run build",
     "lint": "eslint src",
     "prepack": "npm run build",
@@ -18,9 +18,19 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@midnight-ntwrk/compact-runtime": "^0.8.1",
+    "@midnight-ntwrk/ledger": "^4.0.0",
     "@midnight-ntwrk/midnight-js-contracts": "^2.0.2",
+    "@midnight-ntwrk/midnight-js-http-client-proof-provider": "^2.0.2",
+    "@midnight-ntwrk/midnight-js-indexer-public-data-provider": "^2.0.2",
+    "@midnight-ntwrk/midnight-js-level-private-state-provider": "^2.0.2",
     "@midnight-ntwrk/midnight-js-network-id": "^2.0.2",
+    "@midnight-ntwrk/midnight-js-node-zk-config-provider": "^2.0.2",
     "@midnight-ntwrk/midnight-js-types": "^2.0.2",
+    "@midnight-ntwrk/wallet": "^5.0.0",
+    "@midnight-ntwrk/wallet-api": "^5.0.0",
+    "@midnight-ntwrk/zswap": "^4.0.0",
+    "commander": "^14.0.1",
     "typescript": "^5.9.2",
     "winston": "^3.17.0"
   },
