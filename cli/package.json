@@ -8,5 +8,11 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": ""
+  "description": "",
+  "dependencies": {
+    "@midnight-ntwrk/midnight-js-network-id": "^2.0.2",
+    "@types/typescript": "^2.0.0",
+    "typescript": "^5.9.2",
+    "winston": "^3.17.0"
+  }
 }
