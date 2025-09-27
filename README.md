@@ -114,5 +114,5 @@ Apache-2.0 License
 <div align="center">
   <b>Built with ❤️ by Team Recursion</b>
   <br>
-  <i>MLH Midnight Hackathon 2024</i>
+  <i>MLH Midnight Hackathon 2025</i>
 </div>
