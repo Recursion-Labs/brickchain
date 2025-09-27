@@ -4,9 +4,9 @@ import { Config, currentDir } from "./global";
 
 
 export class TestnetLocalConfig implements Config {
-  privateStateStoreName = 'bboard-private-state';
+  privateStateStoreName = 'real-estate-token-private-state';
   logDir = path.resolve(currentDir, '..', 'logs', 'testnet-local', `${new Date().toISOString()}.log`);
-  zkConfigPath = path.resolve(currentDir, '..', '..', 'contract', 'src', 'managed', 'bboard');
+  zkConfigPath = path.resolve(currentDir, '..', '..', 'contracts', 'managed', 'main');
   indexer = 'http://127.0.0.1:8088/api/v1/graphql';
   indexerWS = 'ws://127.0.0.1:8088/api/v1/graphql/ws';
   node = 'http://127.0.0.1:9944';
