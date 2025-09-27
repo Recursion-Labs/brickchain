@@ -16,10 +16,10 @@
     }
   },
   "scripts": {
-    "compact": "compact compile src/counter.compact managed/counter",
+    "compact": "compact compile src/main.compact managed/counter",
     "test": "vitest run",
     "test:compile": "npm run compact && vitest run",
-    "build": "rm -rf dist && tsc --project tsconfig.build.json && cp -Rf ./managed ./dist/managed && cp ./src/counter.compact ./dist",
+    "build": "rm -rf dist && tsc --project tsconfig.build.json && cp -Rf ./managed ./dist/managed && cp ./src/main.compact ./dist",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
