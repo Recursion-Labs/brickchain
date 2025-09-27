@@ -1,133 +1,157 @@
-// main.compact
 pragma language_version >= 0.16 && <= 0.17;
 
 import CompactStandardLibrary;
 
-// Ledger definitions
-export ledger properties: Map<Bytes<32>, PropertyMeta>;
-export ledger propertyIndex: List<Bytes<32>>;
-export ledger round: Counter;
+// Token states for advanced features
+enum TokenState {
+    Active,
+    Paused,
+    Frozen
+}
 
-// Constructor
+// Enhanced ledger state for fungible token
+export ledger total_supply: Uint<64>;
+export ledger circulating_supply: Uint<64>;
+export ledger nonce: Counter;
+
+// Track token balances using bridge contract patterns
+export ledger balances: Map<Uint<32>, Uint<64>>;
+export ledger token_state: TokenState;
+
+// Track token holders and metadata
+export ledger holder_count: Uint<64>;
+export ledger holders: Map<Uint<32>, Boolean>;
+
+// Property details (publicly visible, sensitive details off-chain)
+export ledger property_details: Map<Uint<32>, Bytes<64>>;
+
+// Constructor to initialize the token
 constructor() {
-    // Counter defaults to 0 automatically
+    total_supply = 0;
+    circulating_supply = 0;
+    token_state = TokenState.Active;
+    holder_count = 0;
 }
 
-// Types
-struct PropertyMeta {
-    domainSep: Bytes<32>;
-    tokenType: Bytes<32>;
-    totalSupply: Uint<128>;
-    registered: Boolean;
+export circuit mint(
+    to: Uint<32>,
+    amount: Uint<64>
+): [] {
+    // Check token is active
+    assert(token_state == TokenState.Active, "Token is not active");
+    
+    // Validate amount is positive
+    assert(amount > 0, "Amount must be positive");
+    
+    // Get current balance or 0 if new holder
+    const current_balance = balances.member(disclose(to)) 
+        ? balances.lookup(disclose(to)) 
+        : 0 as Uint<64>;
+    
+    // Update balance using bridge contract patterns
+    balances.insert(disclose(to), (current_balance + disclose(amount)) as Uint<64>);
+    
+    // Track new holders
+    if (!holders.member(disclose(to))) {
+        holders.insert(disclose(to), true);
+        holder_count = (holder_count + 1) as Uint<64>;
+    }
+    
+    // Update total and circulating supply using proper type casting
+    total_supply = (total_supply + disclose(amount)) as Uint<64>;
+    circulating_supply = (circulating_supply + disclose(amount)) as Uint<64>;
+    
+    // Increment nonce for state tracking
+    nonce.increment(1);
 }
 
-// Utilities
-circuit deriveTokenType(domainSep: Bytes<32>): Bytes<32> {
-    return tokenType(domainSep, kernel.self());
+export circuit transfer(
+    from: Uint<32>,
+    to: Uint<32>,
+    amount: Uint<64>
+): [] {
+    // Check token is active
+    assert(token_state == TokenState.Active, "Token is not active");
+    
+    // Validate amount is positive
+    assert(amount > 0, "Amount must be positive");
+    
+    // Check sender has sufficient balance
+    assert(balances.member(disclose(from)), "Sender has no balance");
+    const from_balance = balances.lookup(disclose(from));
+    assert(from_balance >= disclose(amount), "Insufficient balance");
+    
+    // Get recipient balance or 0 if new holder
+    const to_balance = balances.member(disclose(to)) 
+        ? balances.lookup(disclose(to)) 
+        : 0 as Uint<64>;
+    
+    // Update balances using bridge contract patterns
+    balances.insert(disclose(from), (from_balance - disclose(amount)) as Uint<64>);
+    balances.insert(disclose(to), (to_balance + disclose(amount)) as Uint<64>);
+    
+    // Track new holders
+    if (!holders.member(disclose(to))) {
+        holders.insert(disclose(to), true);
+        holder_count = (holder_count + 1) as Uint<64>;
+    }
+    
+    // Increment nonce for state tracking
+    nonce.increment(1);
 }
 
-// Safe summation of coins of a specific token
-pure circuit sumCoinsIfColor(acc: Uint<128>, coin: QualifiedCoinInfo, token: Bytes<32>): Uint<128> {
-    const accF: Field = acc as Field;
-    const addValue: Field = (coin.color == token ? coin.value as Field : 0 as Field);
-    return (accF + addValue) as Uint<128>;
+export circuit burn(
+    from: Uint<32>,
+    amount: Uint<64>
+): [] {
+    // Check token is active
+    assert(token_state == TokenState.Active, "Token is not active");
+    
+    // Validate amount is positive
+    assert(amount > 0, "Amount must be positive");
+    
+    // Check holder has sufficient balance
+    assert(balances.member(disclose(from)), "Holder has no balance");
+    const current_balance = balances.lookup(disclose(from));
+    assert(current_balance >= disclose(amount), "Insufficient balance to burn");
+    
+    // Update balance using bridge contract patterns
+    balances.insert(disclose(from), (current_balance - disclose(amount)) as Uint<64>);
+    
+    // Update total and circulating supply
+    total_supply = (total_supply - disclose(amount)) as Uint<64>;
+    circulating_supply = (circulating_supply - disclose(amount)) as Uint<64>;
+    
+    // Increment nonce for state tracking
+    nonce.increment(1);
 }
 
-// Tokens
-export circuit mintTokens(
-    docHash: Bytes<32>,
-    amount: Uint<128>,
-    nonce: Bytes<32>,
-    recipient: Either<ZswapCoinPublicKey, ContractAddress>
-): CoinInfo {
-    // Declare witness values inside the body
-    let docHashW = witness docHash;
-    let amountW = witness amount;
-    let nonceW = witness nonce;
-    let recipientW = witness recipient;
-
-    assert(properties.member(docHashW), "property not registered");
-    const meta = properties.lookup(docHashW);
-    const domain = meta.domainSep;
-
-    const minted = mintToken(domain, amountW as Uint<64>, nonceW, recipientW);
-
-    const newSupply = (meta.totalSupply + amountW) as Uint<128>;
-    const newMeta = PropertyMeta {
-        domainSep: domain,
-        tokenType: meta.tokenType,
-        totalSupply: newSupply,
-        registered: true
-    };
-
-    properties.insert(docHashW, newMeta);
-    return minted;
+export circuit set_property_details(
+    property_id: Uint<32>,
+    details_hash: Bytes<64>
+): [] {
+    // Set property details (e.g., hash of the property document)
+    property_details.insert(disclose(property_id), disclose(details_hash));
+    
+    // Increment nonce for state tracking
+    nonce.increment(1);
 }
 
-// Burn tokens
-export circuit burnCoinImmediate(docHash: Bytes<32>, coin: CoinInfo): [] {
-    let docHashW = witness docHash;
-
-    assert(properties.member(docHashW), "property not registered");
-    const target = burnAddress();
-    createZswapOutput(coin, target);
+export circuit pause_token(): [] {
+    // Change token state to paused
+    token_state = TokenState.Paused;
+    
+    // Increment nonce for state tracking
+    nonce.increment(1);
 }
 
-// Transfers
-export circuit transferQualifiedCoin(
-    inputCoin: QualifiedCoinInfo,
-    recipient: Either<ZswapCoinPublicKey, ContractAddress>,
-    value: Uint<128>
-): SendResult {
-    let inputCoinW = witness inputCoin;
-    let recipientW = witness recipient;
-    let valueW = witness value;
-
-    assert(valueW <= inputCoinW.value, "transfer value exceeds input coin value");
-    return send(inputCoinW, recipientW, valueW);
-}
-
-// Verification
-export circuit verifyOwnership(
-    coins: Vector<8, QualifiedCoinInfo>,
-    docHash: Bytes<32>,
-    requiredAmount: Uint<128>
-): Boolean {
-    let docHashW = witness docHash;
-
-    assert(properties.member(docHashW), "property not registered");
-    const meta = properties.lookup(docHashW);
-    const token = meta.tokenType;
-    const tokenVec = [token, token, token, token, token, token, token, token];
-
-    const totalHeld = fold(sumCoinsIfColor, 0 as Uint<128>, coins, tokenVec);
-    return totalHeld >= requiredAmount as Uint<128>;
-}
-
-// Registry
-export circuit registerProperty(docHash: Bytes<32>, domainSep: Bytes<32>): [] {
-    let docHashW = witness docHash;
-    let domainSepW = witness domainSep;
-
-    assert(!properties.member(docHashW), "property already registered");
-
-    const tok = deriveTokenType(domainSepW);
-    const meta = PropertyMeta {
-        domainSep: domainSepW,
-        tokenType: tok,
-        totalSupply: 0,
-        registered: true
-    };
-
-    properties.insert(docHashW, meta);
-    propertyIndex.pushFront(docHashW);
-    round.increment(1);
-}
-
-// Read property meta
-export circuit readPropertyMeta(docHash: Bytes<32>): PropertyMeta {
-    let docHashW = witness docHash;
-
-    assert(properties.member(docHashW), "property not registered");
-    return properties.lookup(docHashW);
+export circuit unpause_token(): [] {
+    // Check token is currently paused
+    assert(token_state == TokenState.Paused, "Token is not paused");
+    
+    // Change token state back to active
+    token_state = TokenState.Active;
+    
+    // Increment nonce for state tracking
+    nonce.increment(1);
 }
