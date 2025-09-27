@@ -3,7 +3,7 @@
 import {
   type CircuitContext,
   QueryContext,
-  sampleContractAddress,
+  dummyContractAddress,
   constructorContext
 } from "@midnight-ntwrk/compact-runtime";
 import {
@@ -22,11 +22,18 @@ export class RealEstateTokenSimulator {
     // init contract with witnesses
     this.contract = new Contract<RealEstateTokenPrivateState>(witnesses);
 
-    // build initial state
-    const initCtx = constructorContext(
-      createRealEstateTokenPrivateState(),
-      sampleContractAddress()
-    );
+    // build initial state without zswap
+    const address = "01" + "00".repeat(34); // TestNet network id 1, dummy address
+    const initCtx = {
+      contractAddress: address,
+      initialPrivateState: createRealEstateTokenPrivateState(),
+      initialZswapLocalState: {
+        coinPublicKey: { bytes: new Uint8Array(32) },
+        currentIndex: 0n,
+        inputs: [],
+        outputs: []
+      } // Mock zswap for testing
+    };
 
     const {
       currentPrivateState,
@@ -40,7 +47,7 @@ export class RealEstateTokenSimulator {
       originalState: currentContractState,
       transactionContext: new QueryContext(
         currentContractState.data,
-        sampleContractAddress()
+        dummyContractAddress()
       )
     };
   }
@@ -87,16 +94,6 @@ export class RealEstateTokenSimulator {
     return ledger(this.circuitContext.transactionContext.state);
   }
 
-  public set_property_details(propertyId: Uint8Array, details: Uint8Array): Ledger {
-    const result = this.contract.circuits.set_property_details(
-      this.circuitContext,
-      propertyId,
-      details
-    );
-    this.circuitContext = result.context;
-    return ledger(this.circuitContext.transactionContext.state);
-  }
-
   public pause_token(): Ledger {
     const result = this.contract.circuits.pause_token(this.circuitContext);
     this.circuitContext = result.context;
@@ -105,6 +102,45 @@ export class RealEstateTokenSimulator {
 
   public unpause_token(): Ledger {
     const result = this.contract.circuits.unpause_token(this.circuitContext);
+    this.circuitContext = result.context;
+    return ledger(this.circuitContext.transactionContext.state);
+  }
+
+  public register_property(propertyId: Uint8Array, owner: bigint): Ledger {
+    const result = this.contract.circuits.register_property(
+      this.circuitContext,
+      propertyId,
+      owner
+    );
+    this.circuitContext = result.context;
+    return ledger(this.circuitContext.transactionContext.state);
+  }
+
+  public tokenize_property(propertyId: Uint8Array, tokenId: bigint): Ledger {
+    const result = this.contract.circuits.tokenize_property(
+      this.circuitContext,
+      propertyId,
+      tokenId
+    );
+    this.circuitContext = result.context;
+    return ledger(this.circuitContext.transactionContext.state);
+  }
+
+  public transfer_property_ownership(propertyId: Uint8Array, newOwner: bigint): Ledger {
+    const result = this.contract.circuits.transfer_property_ownership(
+      this.circuitContext,
+      propertyId,
+      newOwner
+    );
+    this.circuitContext = result.context;
+    return ledger(this.circuitContext.transactionContext.state);
+  }
+
+  public deactivate_property(propertyId: Uint8Array): Ledger {
+    const result = this.contract.circuits.deactivate_property(
+      this.circuitContext,
+      propertyId
+    );
     this.circuitContext = result.context;
     return ledger(this.circuitContext.transactionContext.state);
   }

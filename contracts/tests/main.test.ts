@@ -1,21 +1,12 @@
 // main.test.ts
 import { describe, it, expect } from "vitest";
 import { NetworkId, setNetworkId } from "@midnight-ntwrk/midnight-js-network-id";
-import { ContractSimulator } from "@midnight-ntwrk/compact-runtime";
 
-import { witnesses } from "../src/witnesses";
-import type { RealEstateTokenLedger, RealEstateTokenPrivateState } from "../src/witnesses";
+import { RealEstateTokenSimulator } from "./simulation";
 
-// compiled Compact contract JSON (after `compact compile main.compact .`)
-import contractJson from "../managed/main/compiler/contract-info.json";
+setNetworkId(NetworkId.TestNet);
 
-setNetworkId(NetworkId.Undeployed);
-
-const makeSimulator = () =>
-  new ContractSimulator<RealEstateTokenLedger, RealEstateTokenPrivateState>(
-    contractJson,
-    witnesses
-  );
+const makeSimulator = () => new RealEstateTokenSimulator();
 
 describe("Real Estate Token smart contract", () => {
   it("initializes correctly", () => {
