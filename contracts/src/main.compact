@@ -6,10 +6,11 @@ import CompactStandardLibrary;
 // Ledger definitions
 export ledger properties: Map<Bytes<32>, PropertyMeta>;
 export ledger propertyIndex: List<Bytes<32>>;
-export ledger round: Counter;  // Counter defaults to 0 automatically
+export ledger round: Counter;
 
+// Constructor
 constructor() {
-    // No assignment needed for Counter
+    // Counter defaults to 0 automatically
 }
 
 // Types
@@ -21,17 +22,15 @@ struct PropertyMeta {
 }
 
 // Utilities
-pure circuit deriveTokenType(domainSep: Bytes<32>): Bytes<32> {
+circuit deriveTokenType(domainSep: Bytes<32>): Bytes<32> {
     return tokenType(domainSep, kernel.self());
 }
 
-// Safe sum of coins for verification
-pure circuit sumCoinsIfColor(acc: Uint<254>, coin: QualifiedCoinInfo, token: Bytes<32>): Uint<254> {
-    if (coin.color == token) {
-        return acc + coin.value as Uint<254>;
-    } else {
-        return acc;
-    }
+// Safe summation of coins of a specific token
+pure circuit sumCoinsIfColor(acc: Uint<128>, coin: QualifiedCoinInfo, token: Bytes<32>): Uint<128> {
+    const accF: Field = acc as Field;
+    const addValue: Field = (coin.color == token ? coin.value as Field : 0 as Field);
+    return (accF + addValue) as Uint<128>;
 }
 
 // Tokens
@@ -41,68 +40,77 @@ export circuit mintTokens(
     nonce: Bytes<32>,
     recipient: Either<ZswapCoinPublicKey, ContractAddress>
 ): CoinInfo {
-    assert(properties.member(docHash), "property not registered");
-    const meta = properties.lookup(docHash);
+    // Mark parameters as witness locally
+    const docHashW = witness docHash;
+    const amountW = witness amount;
+    const nonceW = witness nonce;
+    const recipientW = witness recipient;
+
+    assert(properties.member(docHashW), "property not registered");
+    const meta = properties.lookup(docHashW);
     const domain = meta.domainSep;
-    const minted = mintToken(domain, amount as Uint<64>, nonce, recipient); // cast to Uint<64>
-    const newSupply = meta.totalSupply + amount;
+    const minted = mintToken(domain, amountW as Uint<64>, nonceW, recipientW);
+    const newSupply = (meta.totalSupply + amountW) as Uint<128>;
     const newMeta = PropertyMeta {
         domainSep: domain,
         tokenType: meta.tokenType,
         totalSupply: newSupply,
         registered: true
     };
-    properties.insert(docHash, newMeta);
+    properties.insert(docHashW, newMeta);
     return minted;
 }
 
+// Burn tokens
 export circuit burnCoinImmediate(docHash: Bytes<32>, coin: CoinInfo): [] {
-    assert(properties.member(docHash), "property not registered");
+    const docHashW = witness docHash;
+    assert(properties.member(docHashW), "property not registered");
     const target = burnAddress();
     createZswapOutput(coin, target);
 }
 
 // Transfers
-export circuit transferQualifiedCoin(
-    inputCoin: QualifiedCoinInfo,
-    recipient: Either<ZswapCoinPublicKey, ContractAddress>,
-    value: Uint<128>
-): SendResult {
-    assert(value <= inputCoin.value, "transfer value exceeds input coin value");
-    const res = send(inputCoin, recipient, value);
-    return res;
+export circuit transferQualifiedCoin(inputCoin: QualifiedCoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>, value: Uint<128>): SendResult {
+    const inputCoinW = witness inputCoin;
+    const recipientW = witness recipient;
+    const valueW = witness value;
+
+    assert(valueW <= inputCoinW.value, "transfer value exceeds input coin value");
+    return send(inputCoinW, recipientW, valueW);
 }
 
 // Verification
-export circuit verifyOwnership(
-    coins: Vector<8, QualifiedCoinInfo>,
-    docHash: Bytes<32>,
-    requiredAmount: Uint<128>
-): Boolean {
-    assert(properties.member(docHash), "property not registered");
-    const meta = properties.lookup(docHash);
+export circuit verifyOwnership(coins: Vector<8, QualifiedCoinInfo>, docHash: Bytes<32>, requiredAmount: Uint<128>): Boolean {
+    const docHashW = witness docHash;
+    assert(properties.member(docHashW), "property not registered");
+    const meta = properties.lookup(docHashW);
     const token = meta.tokenType;
     const tokenVec = [token, token, token, token, token, token, token, token];
-    const totalHeld = fold(sumCoinsIfColor, 0 as Uint<254>, coins, tokenVec);
-    return totalHeld >= requiredAmount as Uint<254>;
+    const totalHeld = fold(sumCoinsIfColor, 0 as Uint<128>, coins, tokenVec);
+    return totalHeld >= requiredAmount as Uint<128>;
 }
 
 // Registry
 export circuit registerProperty(docHash: Bytes<32>, domainSep: Bytes<32>): [] {
-    assert(!properties.member(docHash), "property already registered");
-    const tok = deriveTokenType(domainSep);
+    const docHashW = witness docHash;
+    const domainSepW = witness domainSep;
+
+    assert(!properties.member(docHashW), "property already registered");
+    const tok = deriveTokenType(domainSepW);
     const meta = PropertyMeta {
-        domainSep: domainSep,
+        domainSep: domainSepW,
         tokenType: tok,
         totalSupply: 0,
         registered: true
     };
-    properties.insert(docHash, meta);
-    propertyIndex.pushFront(docHash);
-    round.increment();  // correct way to modify Counter
+    properties.insert(docHashW, meta);
+    propertyIndex.pushFront(docHashW);
+    round.increment(1);
 }
 
+// Read property meta
 export circuit readPropertyMeta(docHash: Bytes<32>): PropertyMeta {
-    assert(properties.member(docHash), "property not registered");
-    return properties.lookup(docHash);
+    const docHashW = witness docHash;
+    assert(properties.member(docHashW), "property not registered");
+    return properties.lookup(docHashW);
 }
