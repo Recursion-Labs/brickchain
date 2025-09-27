@@ -1,10 +1,11 @@
-import { Link, useNavigate } from 'react-router-dom';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Home, ArrowLeft } from 'lucide-react';
 
 export default function NotFound() {
-  const navigate = useNavigate();
+  const router = useRouter();
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -21,12 +22,12 @@ export default function NotFound() {
             <Button 
               variant="outline" 
               className="flex items-center gap-2"
-              onClick={() => navigate(-1)}
+              onClick={() => router.back()}
             >
               <ArrowLeft className="h-4 w-4" />
               Go Back
             </Button>
-            <Link to="/">
+            <Link href="/">
               <Button className="flex items-center gap-2">
                 <Home className="h-4 w-4" />
                 Home
