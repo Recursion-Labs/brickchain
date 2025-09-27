@@ -3,18 +3,23 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-      "compact": "compact compile contracts/src/counter.compact contracts/managed/counter"
+    "compact": "compact compile contracts/src/counter.compact contracts/managed/counter"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@midnight-ntwrk/compact-runtime": "^0.8.1",
+    "@midnight-ntwrk/midnight-js-network-id": "^2.0.2",
     "@midnight-ntwrk/midnight-js-testing": "^2.0.2",
     "@midnight-ntwrk/wallet": "^5.0.0",
     "@types/node": "^24.5.2",
+    "@types/typescript": "^2.0.0",
     "@types/winston": "^2.4.4",
     "dotenv": "^17.2.2",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4",
     "winston": "^3.17.0"
   }
 }
