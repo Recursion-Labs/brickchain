@@ -16,7 +16,7 @@
     }
   },
   "scripts": {
-    "compact": "compact compile src/main.compact managed/counter",
+    "compact": "compact compile src/main.compact managed/main",
     "test": "vitest run",
     "test:compile": "npm run compact && vitest run",
     "build": "rm -rf dist && tsc --project tsconfig.build.json && cp -Rf ./managed ./dist/managed && cp ./src/main.compact ./dist",
@@ -27,6 +27,7 @@
     "@midnight-ntwrk/ledger": "^4.0.0",
     "@midnight-ntwrk/midnight-js-network-id": "^2.0.2",
     "@midnight-ntwrk/zswap": "^4.0.0",
+    "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   }
 }

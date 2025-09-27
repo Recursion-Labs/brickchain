@@ -9,6 +9,14 @@ enum TokenState {
     Frozen
 }
 
+// Property status for tracking real-world property lifecycle
+enum PropertyStatus {
+    Registered,
+    Tokenized,
+    Transferred,
+    Deactivated
+}
+
 // Enhanced ledger state for fungible token
 export ledger total_supply: Uint<64>;
 export ledger circulating_supply: Uint<64>;
@@ -22,8 +30,10 @@ export ledger token_state: TokenState;
 export ledger holder_count: Uint<64>;
 export ledger holders: Map<Uint<32>, Boolean>;
 
-// Property details (publicly visible, sensitive details off-chain)
-export ledger property_details: Map<Uint<32>, Bytes<64>>;
+// Property-specific ledgers
+export ledger property_statuses: Map<Bytes<32>, PropertyStatus>; // Property ID -> Status
+export ledger property_owners: Map<Bytes<32>, Uint<32>>; // Property ID -> Owner ID
+export ledger property_token_ids: Map<Bytes<32>, Uint<32>>; // Property ID -> Token ID (if 1:1 tokenization)
 
 // Constructor to initialize the token
 constructor() {
@@ -100,6 +110,24 @@ export circuit transfer(
     nonce.increment(1);
 }
 
+export circuit approve(
+    owner: Uint<32>,
+    spender: Uint<32>,
+    amount: Uint<64>
+): [] {
+    // Check token is active
+    assert(token_state == TokenState.Active, "Token is not active");
+    
+    // Validate amount is positive
+    assert(amount > 0, "Amount must be positive");
+    
+    // Note: In a full implementation, you'd track allowances in a separate Map
+    // For simplicity, this basic version just validates the parameters
+    
+    // Increment nonce for state tracking
+    nonce.increment(1);
+}
+
 export circuit burn(
     from: Uint<32>,
     amount: Uint<64>
@@ -126,17 +154,6 @@ export circuit burn(
     nonce.increment(1);
 }
 
-export circuit set_property_details(
-    property_id: Uint<32>,
-    details_hash: Bytes<64>
-): [] {
-    // Set property details (e.g., hash of the property document)
-    property_details.insert(disclose(property_id), disclose(details_hash));
-    
-    // Increment nonce for state tracking
-    nonce.increment(1);
-}
-
 export circuit pause_token(): [] {
     // Change token state to paused
     token_state = TokenState.Paused;
@@ -153,5 +170,46 @@ export circuit unpause_token(): [] {
     token_state = TokenState.Active;
     
     // Increment nonce for state tracking
+    nonce.increment(1);
+}
+
+// Property-specific circuits
+export circuit register_property(
+    property_id: Bytes<32>,
+    owner_id: Uint<32>
+): [] {
+    assert(!property_statuses.member(disclose(property_id)), "Property already registered");
+    property_statuses.insert(disclose(property_id), PropertyStatus.Registered);
+    property_owners.insert(disclose(property_id), disclose(owner_id));
+    nonce.increment(1);
+}
+
+export circuit tokenize_property(
+    property_id: Bytes<32>,
+    token_id: Uint<32>
+): [] {
+    assert(property_statuses.member(disclose(property_id)), "Property not registered");
+    assert(property_statuses.lookup(disclose(property_id)) == PropertyStatus.Registered, "Property not in Registered state");
+    property_statuses.insert(disclose(property_id), PropertyStatus.Tokenized);
+    property_token_ids.insert(disclose(property_id), disclose(token_id));
+    nonce.increment(1);
+}
+
+export circuit transfer_property_ownership(
+    property_id: Bytes<32>,
+    new_owner_id: Uint<32>
+): [] {
+    assert(property_statuses.member(disclose(property_id)), "Property not registered");
+    assert(property_owners.member(disclose(property_id)), "Property has no owner");
+    property_owners.insert(disclose(property_id), disclose(new_owner_id));
+    property_statuses.insert(disclose(property_id), PropertyStatus.Transferred);
+    nonce.increment(1);
+}
+
+export circuit deactivate_property(
+    property_id: Bytes<32>
+): [] {
+    assert(property_statuses.member(disclose(property_id)), "Property not registered");
+    property_statuses.insert(disclose(property_id), PropertyStatus.Deactivated);
     nonce.increment(1);
 }

@@ -18,7 +18,9 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@midnight-ntwrk/midnight-js-contracts": "^2.0.2",
     "@midnight-ntwrk/midnight-js-network-id": "^2.0.2",
+    "@midnight-ntwrk/midnight-js-types": "^2.0.2",
     "typescript": "^5.9.2",
     "winston": "^3.17.0"
   },
