@@ -30,9 +30,11 @@
     "@midnight-ntwrk/wallet": "^5.0.0",
     "@midnight-ntwrk/wallet-api": "^5.0.0",
     "@midnight-ntwrk/zswap": "^4.0.0",
+    "@types/ws": "^8.18.1",
     "commander": "^14.0.1",
     "typescript": "^5.9.2",
-    "winston": "^3.17.0"
+    "winston": "^3.17.0",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "@types/node": "^24.5.2"

@@ -12,7 +12,7 @@ export interface Config {
   setNetworkId: () => void;
 }
 
-export const currentDir = path.resolve(new URL(import.meta.url).pathname, '..');
+export const currentDir = __dirname;
 
 // Factory functions for configs
 export function getTestNetConfig(): Config {
