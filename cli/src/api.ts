@@ -78,14 +78,29 @@ export const deploy = async (
   privateState: RealEstateTokenPrivateState,
 ): Promise<DeployedRealEstateTokenContract> => {
   globalLogger.info('Deploying Real Estate Token contract...');
-  const realEstateTokenContract = await deployContract(providers, {
-    contract: realEstateTokenContractInstance,
-    privateStateId: 'realEstateTokenPrivateState',
-    initialPrivateState: privateState,
-    args: [],
-  });
-  globalLogger.info(`Deployed contract at address: ${realEstateTokenContract.deployTxData.public.contractAddress}`);
-  return realEstateTokenContract;
+  try {
+    const realEstateTokenContract = await deployContract(providers, {
+      contract: realEstateTokenContractInstance,
+      privateStateId: 'realEstateTokenPrivateState',
+      initialPrivateState: privateState,
+      args: [],
+    });
+    globalLogger.info(`Deployed contract at address: ${realEstateTokenContract.deployTxData.public.contractAddress}`);
+    return realEstateTokenContract;
+  } catch (error: any) {
+    if (error.message && error.message.includes('Not sufficient funds')) {
+      globalLogger.error('Deployment failed due to insufficient funds.');
+      globalLogger.error('To deploy contracts, you need test tokens for gas fees.');
+      globalLogger.error('');
+      globalLogger.error('Options:');
+      globalLogger.error('1. Use Midnight testnet with faucet: Visit https://docs.midnight.network/ for faucet information');
+      globalLogger.error('2. For local development: Configure the node with pre-funded accounts');
+      globalLogger.error('3. Use --network testnet flag to deploy to testnet');
+      globalLogger.error('');
+      globalLogger.error('Your wallet address for funding: Check the logs above');
+    }
+    throw error;
+  }
 };
 
 // Token operations
@@ -251,21 +266,32 @@ export const waitForSync = (wallet: Wallet) =>
 
 export const waitForFunds = (wallet: Wallet) =>
   Rx.firstValueFrom(
-    wallet.state().pipe(
-      Rx.throttleTime(10_000),
-      Rx.tap((state) => {
-        const applyGap = state.syncProgress?.lag.applyGap ?? 0n;
-        const sourceGap = state.syncProgress?.lag.sourceGap ?? 0n;
-        globalLogger.info(
-          `Waiting for funds. Backend lag: ${sourceGap}, wallet lag: ${applyGap}, transactions=${state.transactionHistory.length}`,
-        );
-      }),
-      Rx.filter((state) => {
-        return state.syncProgress?.synced === true;
-      }),
-      Rx.map((s) => s.balances[nativeToken()] ?? 0n),
-      Rx.filter((balance) => balance > 0n),
-    ),
+    Rx.race(
+      wallet.state().pipe(
+        Rx.throttleTime(10_000),
+        Rx.tap((state) => {
+          const applyGap = state.syncProgress?.lag.applyGap ?? 0n;
+          const sourceGap = state.syncProgress?.lag.sourceGap ?? 0n;
+          globalLogger.info(
+            `Waiting for funds. Backend lag: ${sourceGap}, wallet lag: ${applyGap}, transactions=${state.transactionHistory.length}`,
+          );
+        }),
+        Rx.filter((state) => {
+          return state.syncProgress?.synced === true;
+        }),
+        Rx.map((s) => s.balances[nativeToken()] ?? 0n),
+        Rx.filter((balance) => balance > 0n),
+      ),
+      Rx.timer(60_000).pipe(
+        Rx.map(() => {
+          globalLogger.error('Timeout waiting for funds.');
+          globalLogger.error('If using testnet, you may need to request tokens from the Midnight faucet.');
+          globalLogger.error('Visit https://docs.midnight.network/ for faucet information.');
+          globalLogger.error('Your wallet address is shown in the logs above.');
+          throw new Error('Timeout waiting for funds');
+        })
+      )
+    )
   );
 
 export const buildWalletAndWaitForFunds = async (
@@ -373,8 +399,14 @@ export const buildWalletAndWaitForFunds = async (
   let balance = state.balances[nativeToken()];
   if (balance === undefined || balance === 0n) {
     globalLogger.info(`Your wallet balance is: 0`);
-    globalLogger.info(`Waiting to receive tokens...`);
-    balance = await waitForFunds(wallet);
+    // Skip waiting for funds if using local indexer (development mode)
+    if (config.indexer.includes('127.0.0.1') || config.indexer.includes('localhost')) {
+      globalLogger.info(`Using local development network - proceeding with zero balance for testing`);
+      balance = 0n;
+    } else {
+      globalLogger.info(`Waiting to receive tokens...`);
+      balance = await waitForFunds(wallet);
+    }
   }
   globalLogger.info(`Your wallet balance is: ${balance}`);
   return wallet;
