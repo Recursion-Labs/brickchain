@@ -1,5 +1,6 @@
 import { useStore } from '../lib/store';
 import Navigation from '@/components/Navigation';
+import { useMidnightWalletState } from '@/lib/midnight-wallet-provider';
 // import DebugNavigation from '@/components/DebugNavigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,12 +17,14 @@ import {
   Users,
   Sparkles,
   Zap,
-  Lock
+  Lock,
+  Moon
 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Dashboard() {
   const { isConnected, walletAddress, walletInfo } = useStore();
+  const { walletState: midnightWallet, address: midnightAddress, balance: midnightBalance } = useMidnightWalletState();
 
   const features = [
     {
@@ -177,6 +180,39 @@ export default function Dashboard() {
                     </div>
                   )}
                 </div>
+                
+                {/* Midnight Wallet Status */}
+                {midnightWallet && midnightWallet.isConnected && (
+                  <div className="mt-4 pt-4 border-t border-gray-700">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg">
+                        <Moon className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <h4 className="text-md text-white font-semibold">Midnight Network</h4>
+                        <p className="text-sm text-gray-400">Privacy-preserving layer</p>
+                      </div>
+                      <Badge className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-400 border-purple-500/30 flex items-center gap-2 ml-auto">
+                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                        Connected
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-400 mb-1">Midnight Address</p>
+                        <p className="font-mono text-xs bg-slate-800/50 p-3 rounded-lg text-gray-300 border border-purple-500/20 break-all">
+                          {formatAddress(midnightAddress || '')}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-400 mb-1">Balance</p>
+                        <p className="font-semibold text-lg text-white">
+                          {midnightBalance} tDUST
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ) : (
