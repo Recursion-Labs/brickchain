@@ -1,14 +1,18 @@
+version: '3.8'
+
 services:
   proof-server:
-    container_name: 'counter-proof-server'
-    image: "midnightnetwork/proof-server:4.0.0"
+    container_name: 'brickchain-proof-server'
+    image: "midnightnetwork/proof-server:latest"
     ports:
       - "6300:6300"
     environment:
       RUST_BACKTRACE: "full"
+    networks:
+      - brickchain-network
 
   indexer:
-    container_name: 'counter-indexer'
+    container_name: 'brickchain-indexer'
     image: 'midnightntwrk/indexer-standalone:2.1.1'
     ports:
       - '8088:8088'
@@ -16,10 +20,14 @@ services:
       RUST_LOG: "indexer=info,chain_indexer=info,indexer_api=info,wallet_indexer=info,indexer_common=info,fastrace_opentelemetry=off,info"
       APP__INFRA__SECRET: "303132333435363738393031323334353637383930313233343536373839303132"
       APP__INFRA__NODE__URL: "ws://node:9944"
-  
+    depends_on:
+      - node
+    networks:
+      - brickchain-network
+
   node:
     image: 'midnightnetwork/midnight-node:0.12.0'
-    container_name: 'counter-node'
+    container_name: 'brickchain-node'
     ports:
       - "9944:9944"
     healthcheck:
@@ -30,3 +38,10 @@ services:
       start_period: 40s
     environment:
       CFG_PRESET: "dev"
+    command: ["--dev", "--rpc-methods=unsafe", "--no-telemetry"]
+    networks:
+      - brickchain-network
+
+networks:
+  brickchain-network:
+    driver: bridge

@@ -95,6 +95,9 @@ async function main() {
         process.exit(1);
     }
 
+    // Set the network ID
+    config.setNetworkId();
+
     switch (command) {
       case 'deploy':
         logger.info('Deploying contract on testnet...');

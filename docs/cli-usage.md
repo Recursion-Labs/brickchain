@@ -27,15 +27,6 @@ npm --version   # Should be >= 9.0.0
 
 ### Installing the CLI
 
-#### Global Installation
-```bash
-# Install globally from npm
-npm install -g @brickchain/cli
-
-# Verify installation
-brickchain --version
-```
-
 #### Local Project Installation
 ```bash
 # Navigate to project directory
