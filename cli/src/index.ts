@@ -27,9 +27,11 @@ Commands:
   mint <to> <amount>        Mint tokens to an address (requires -c contract)
   status                    Display contract status (requires -c contract)
 
+
 Options:
   -c <address>             Contract address
   -n <network>             Network: testnet, proofserver, standalone (default: testnet)
+  --seed <hex>             Use a specific wallet seed (advanced)
   -h                       Show this help
 
 Examples:
@@ -43,9 +45,10 @@ Examples:
 
 // Parse arguments
 function parseArgs(args: string[]) {
-  const parsed: { command: string; contractAddress?: string; network: string; args: string[] } = {
+  const parsed: { command: string; contractAddress?: string; network: string; seed?: string; args: string[] } = {
     command: '',
     network: 'testnet',
+    seed: undefined,
     args: []
   };
 
@@ -58,6 +61,8 @@ function parseArgs(args: string[]) {
       parsed.contractAddress = args[++i];
     } else if (arg === '-n' || arg === '--network') {
       parsed.network = args[++i];
+    } else if (arg === '--seed') {
+      parsed.seed = args[++i];
     } else if (!parsed.command) {
       parsed.command = arg;
     } else {
@@ -71,7 +76,7 @@ function parseArgs(args: string[]) {
 // Main execution
 async function main() {
   try {
-    const { command, contractAddress, network, args } = parseArgs(process.argv.slice(2));
+  const { command, contractAddress, network, seed, args } = parseArgs(process.argv.slice(2));
 
     if (!command) {
       printUsage();
@@ -97,6 +102,8 @@ async function main() {
 
     // Set the network ID
     config.setNetworkId();
+    // Pass seed to config for setupWalletAndProviders
+    if (seed) config.seed = seed;
 
     switch (command) {
       case 'deploy':
@@ -153,7 +160,22 @@ async function main() {
 
 // Helper function to set up wallet and providers
 async function setupWalletAndProviders(config: any) {
-  const wallet = await buildFreshWallet(config);
+  let wallet;
+  if (config.seed) {
+    if (!/^[0-9a-fA-F]{64}$/.test(config.seed)) {
+      throw new Error('Provided seed must be a 64-character hex string.');
+    }
+    wallet = await buildFreshWallet(config, config.seed);
+  } else {
+    wallet = await buildFreshWallet(config);
+  }
+  // Await wallet state using Rx.firstValueFrom for compatibility
+  const Rx = require('rxjs');
+  const state = await Rx.firstValueFrom(wallet.state());
+  if (state.address && state.address.includes('undeployed')) {
+    console.error('ERROR: Wallet address is undeployed. Please fund this wallet using the testnet faucet, or use a valid deployed wallet seed with --seed.');
+    process.exit(1);
+  }
   const providers = await configureProviders(wallet, config);
   return { wallet, providers };
 }

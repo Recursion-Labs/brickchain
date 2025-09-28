@@ -418,8 +418,8 @@ export const randomBytes = (length: number): Uint8Array => {
   return bytes;
 };
 
-export const buildFreshWallet = async (config: Config): Promise<Wallet & Resource> =>
-  await buildWalletAndWaitForFunds(config, toHex(randomBytes(32)), '');
+export const buildFreshWallet = async (config: Config, seedOverride?: string): Promise<Wallet & Resource> =>
+  await buildWalletAndWaitForFunds(config, seedOverride ? seedOverride : toHex(randomBytes(32)), '');
 
 export const configureProviders = async (wallet: Wallet & Resource, config: Config) => {
   const walletAndMidnightProvider = await createWalletAndMidnightProvider(wallet);
