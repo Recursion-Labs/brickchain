@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { logger } from './utils/logger';
-import { getTestNetConfig } from './config/global';
+import { getTestNetConfig, getProofServerConfig, getStandaloneConfig } from './config/global';
 import {
   setLogger,
   deploy,
@@ -29,49 +29,71 @@ Commands:
 
 Options:
   -c <address>             Contract address
+  -n <network>             Network: testnet, proofserver, standalone (default: testnet)
   -h                       Show this help
 
 Examples:
   node dist/index.js deploy
-  node dist/index.js join 0x123...
-  node dist/index.js mint 123 1000 -c 0x123...
-  node dist/index.js status -c 0x123...
+  node dist/index.js deploy -n standalone
+  node dist/index.js join 0x123... -n testnet
+  node dist/index.js mint 123 1000 -c 0x123... -n testnet
+  node dist/index.js status -c 0x123... -n standalone
 `);
 }
 
 // Parse arguments
 function parseArgs(args: string[]) {
-  const options: any = {};
-  const commandArgs: string[] = [];
+  const parsed: { command: string; contractAddress?: string; network: string; args: string[] } = {
+    command: '',
+    network: 'testnet',
+    args: []
+  };
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-
     if (arg === '-h' || arg === '--help') {
       printUsage();
       process.exit(0);
     } else if (arg === '-c') {
-      options.contract = args[++i];
-    } else if (!arg.startsWith('-')) {
-      commandArgs.push(arg);
+      parsed.contractAddress = args[++i];
+    } else if (arg === '-n' || arg === '--network') {
+      parsed.network = args[++i];
+    } else if (!parsed.command) {
+      parsed.command = arg;
+    } else {
+      parsed.args.push(arg);
     }
   }
 
-  const [command, ...cmdArgs] = commandArgs;
-  return { command, commandArgs: cmdArgs, options };
+  return parsed;
 }
 
 // Main execution
 async function main() {
   try {
-    const { command, commandArgs, options } = parseArgs(process.argv.slice(2));
+    const { command, contractAddress, network, args } = parseArgs(process.argv.slice(2));
 
     if (!command) {
       printUsage();
       process.exit(1);
     }
 
-    const config = getTestNetConfig();
+    // Select network config
+    let config: any;
+    switch (network.toLowerCase()) {
+      case 'testnet':
+        config = getTestNetConfig();
+        break;
+      case 'proofserver':
+        config = getProofServerConfig();
+        break;
+      case 'standalone':
+        config = getStandaloneConfig();
+        break;
+      default:
+        console.error(`Unknown network: ${network}. Supported networks: testnet, proofserver, standalone`);
+        process.exit(1);
+    }
 
     switch (command) {
       case 'deploy':
@@ -82,36 +104,36 @@ async function main() {
         break;
 
       case 'join':
-        if (commandArgs.length !== 1) {
+        if (args.length !== 1) {
           throw new Error('Join command requires contract address');
         }
-        const contractAddress = commandArgs[0];
-        logger.info(`Joining contract ${contractAddress}...`);
+        const joinContractAddress = args[0];
+        logger.info(`Joining contract ${joinContractAddress}...`);
         const { providers: joinProviders } = await setupWalletAndProviders(config);
-        const contract = await joinContract(joinProviders, contractAddress);
-        logger.info(`Joined contract at: ${contract.deployTxData.public.contractAddress}`);
+        const joinedContract = await joinContract(joinProviders, joinContractAddress);
+        logger.info(`Joined contract at: ${joinedContract.deployTxData.public.contractAddress}`);
         break;
 
       case 'mint':
-        if (commandArgs.length !== 2) {
+        if (args.length !== 2) {
           throw new Error('Mint command requires <to> <amount>');
         }
-        if (!options.contract) {
+        if (!contractAddress) {
           throw new Error('Contract address required. Use -c <address>');
         }
-        const [to, amount] = commandArgs;
+        const [to, amount] = args;
         const { providers: mintProviders } = await setupWalletAndProviders(config);
-        const mintContract = await joinContract(mintProviders, options.contract);
+        const mintContract = await joinContract(mintProviders, contractAddress);
         await mint(mintContract, BigInt(to), BigInt(amount));
         logger.info(`Minted ${amount} tokens to ${to}`);
         break;
 
       case 'status':
-        if (!options.contract) {
+        if (!contractAddress) {
           throw new Error('Contract address required. Use -c <address>');
         }
         const { providers: statusProviders } = await setupWalletAndProviders(config);
-        const statusContract = await joinContract(statusProviders, options.contract);
+        const statusContract = await joinContract(statusProviders, contractAddress);
         await displayTokenState(statusProviders, statusContract);
         break;
 

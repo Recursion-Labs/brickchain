@@ -1,6 +1,5 @@
 import path from "path";
-import { NetworkId } from "node_modules/@midnight-ntwrk/midnight-js-network-id/dist/network-id";
-import { setNetworkId } from "@midnight-ntwrk/midnight-js-network-id";
+import { NetworkId, setNetworkId } from "@midnight-ntwrk/midnight-js-network-id";
 import { Config, currentDir } from "./global";
 
 export class StandaloneConfig implements Config {

@@ -100,8 +100,8 @@ npm run standalone
 |-------------|--------------|----------------|
 | **Lead**     | Md Athar Jamal Makki  | [@atharhive](https://github.com/atharhive)       |
 | **Frontend** | Akshad Jogi  | [@akshad-exe](https://github.com/akshad-exe)     |
-| **Backend**  | Ayush Sarkar  | [@dev-Ninjaa](https://github.com/dev-Ninjaa)      |
-| **Smart Contract Dev**|  | [@samarth3301](https://github.com/samarth3301) | 
+|  **Smart Contract Dev** | Ayush Sarkar  | [@dev-Ninjaa](https://github.com/dev-Ninjaa)      |
+| **Backend**| Samarth Mahapatra | [@samarth3301](https://github.com/samarth3301) | 
 
 ---
 
@@ -114,5 +114,5 @@ Apache-2.0 License
 <div align="center">
   <b>Built with ❤️ by Team Recursion</b>
   <br>
-  <i>MLH Midnight Hackathon 2024</i>
+  <i>MLH Midnight Hackathon 2025</i>
 </div>
