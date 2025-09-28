@@ -22,6 +22,44 @@ export default function MidnightWalletConnect() {
   
   const [copied, setCopied] = useState(false);
   const [serviceConfig, setServiceConfig] = useState<any>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Load service configuration
+  const loadServiceConfig = async () => {
+    if (isConnected) {
+      try {
+        console.log('🔄 Loading service configuration...');
+        const config = await getServiceConfig();
+        setServiceConfig(config);
+        console.log('✅ Service configuration loaded:', config);
+      } catch (error) {
+        console.error('❌ Failed to load service configuration:', error);
+        setServiceConfig({ node: false, indexer: false, proofServer: false });
+      }
+    }
+  };
+
+  // Combined refresh function
+  const handleRefresh = async () => {
+    if (isRefreshing) return;
+    
+    setIsRefreshing(true);
+    try {
+      console.log('🔄 Refreshing wallet and services...');
+      
+      // Refresh wallet state
+      await refresh();
+      
+      // Refresh service configuration
+      await loadServiceConfig();
+      
+      console.log('✅ Refresh completed!');
+    } catch (error) {
+      console.error('❌ Refresh failed:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Sync with global store when wallet state changes
   useEffect(() => {
@@ -37,12 +75,8 @@ export default function MidnightWalletConnect() {
 
   // Load service configuration when connected
   useEffect(() => {
-    if (isConnected) {
-      getServiceConfig()
-        .then(setServiceConfig)
-        .catch(console.error);
-    }
-  }, [isConnected, getServiceConfig]);
+    loadServiceConfig();
+  }, [isConnected]);
 
   const handleConnect = async () => {
     try {
@@ -170,10 +204,11 @@ export default function MidnightWalletConnect() {
           <Button
             variant="outline"
             size="sm"
-            onClick={refresh}
+            onClick={handleRefresh}
+            disabled={isRefreshing}
             className="border-gray-600 text-gray-300 hover:bg-gray-700"
           >
-            <RefreshCw className="h-3 w-3" />
+            <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} />
           </Button>
           <Button
             variant="outline" 
@@ -261,11 +296,12 @@ export default function MidnightWalletConnect() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={refresh}
+                onClick={handleRefresh}
+                disabled={isRefreshing}
                 className="border-green-500/30 text-green-300 hover:bg-green-500/10 text-xs"
               >
-                <RefreshCw className="h-3 w-3 mr-1" />
-                Refresh
+                <RefreshCw className={`h-3 w-3 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Refreshing...' : 'Refresh'}
               </Button>
             </div>
           </div>
@@ -284,31 +320,44 @@ export default function MidnightWalletConnect() {
             </div>
           </div>
           
+          {/* Services Offline Warning */}
           {(!serviceConfig.node || !serviceConfig.indexer || !serviceConfig.proofServer) && (
             <Alert className="mt-4 bg-yellow-500/10 border-yellow-500/20">
               <AlertCircle className="h-4 w-4 text-yellow-400" />
               <AlertDescription className="text-yellow-200">
                 <div className="space-y-3">
-                  <p className="font-semibold">⚠️ Network Services Required</p>
-                  <p className="text-sm">Some Midnight network services are offline. Start the Docker services to enable full functionality and update your tDUST balance:</p>
+                  <p className="font-semibold">⚠️ Network Services Status</p>
+                  <p className="text-sm">
+                    {!serviceConfig.node && 'Node service is not responding. '}
+                    {!serviceConfig.indexer && 'Indexer service needs attention. '}
+                    {!serviceConfig.proofServer && 'Proof Server is offline. '}
+                    {serviceConfig._configWarning?.usingRemoteNode ? 
+                      'Using remote services for Node and Indexer.' : 
+                      'Start local Docker services for full functionality:'
+                    }
+                  </p>
                   
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold text-yellow-300">Quick Start (All Services):</p>
-                    <div className="text-xs font-mono bg-slate-800/50 p-2 rounded border border-slate-600">
-                      cd docker/prod && docker-compose up -d
-                    </div>
-                  </div>
+                  {!serviceConfig._configWarning?.usingRemoteNode && (
+                    <>
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-yellow-300">Quick Start (All Services):</p>
+                        <div className="text-xs font-mono bg-slate-800/50 p-2 rounded border border-slate-600">
+                          cd docker/prod && docker-compose up -d
+                        </div>
+                      </div>
 
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold text-yellow-300">Check Status:</p>
-                    <div className="text-xs font-mono bg-slate-800/50 p-2 rounded border border-slate-600">
-                      docker-compose ps
-                    </div>
-                  </div>
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-yellow-300">Check Status:</p>
+                        <div className="text-xs font-mono bg-slate-800/50 p-2 rounded border border-slate-600">
+                          docker-compose ps
+                        </div>
+                      </div>
 
-                  <div className="text-xs text-yellow-200">
-                    💡 Tip: Use the "Copy Command" button above, then paste in your terminal
-                  </div>
+                      <div className="text-xs text-yellow-200">
+                        💡 Tip: Use the "Copy Command" button above, then paste in your terminal
+                      </div>
+                    </>
+                  )}
                 </div>
               </AlertDescription>
             </Alert>

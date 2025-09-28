@@ -9,6 +9,7 @@ import {
   MidnightWalletError,
   WALLET_ERRORS 
 } from './midnight-wallet-types';
+import { initializeMidnightClient } from './midnight';
 
 interface MidnightWalletContextType {
   // Wallet state
@@ -104,6 +105,16 @@ export function MidnightWalletProvider({ children }: MidnightWalletProviderProps
 
       console.log('🎉 Midnight wallet connected successfully!');
       
+      // Initialize Midnight client for contract interactions
+      try {
+        console.log('🔧 Initializing Midnight client...');
+        await initializeMidnightClient();
+        console.log('✅ Midnight client initialized successfully!');
+      } catch (clientError) {
+        console.warn('⚠️ Failed to initialize Midnight client:', clientError);
+        // Don't throw here - wallet is connected, client initialization is secondary
+      }
+      
     } catch (err) {
       console.error('❌ Wallet connection failed:', err);
       const errorMessage = err instanceof Error ? err.message : 'Unknown connection error';
@@ -121,6 +132,16 @@ export function MidnightWalletProvider({ children }: MidnightWalletProviderProps
     setWalletState(null);
     setWalletAPI(null);
     setError(null);
+    
+    // Clear Midnight client from store
+    try {
+      const { useStore } = require('./store');
+      useStore.getState().setMidnightClient(null);
+      console.log('🧹 Midnight client cleared from store');
+    } catch (err) {
+      console.warn('Failed to clear Midnight client:', err);
+    }
+    
     console.log('👋 Wallet disconnected');
   }, []);
 
@@ -165,7 +186,67 @@ export function MidnightWalletProvider({ children }: MidnightWalletProviderProps
     }
   }, [walletAPI, isConnected]);
 
-  // Get service configuration
+  // Check if a service is running by making a health check request
+  const checkServiceHealth = async (url: string, serviceName: string): Promise<boolean> => {
+    try {
+      // Try to connect to the service with a timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+
+      const response = await fetch(url, { 
+        method: 'GET',
+        mode: 'no-cors', // Use no-cors to avoid CORS issues
+        cache: 'no-cache',
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      // With no-cors mode, if the request completes without error, the service is likely running
+      console.log(`🔍 ${serviceName} health check (${url}): ✅ (service responding)`);
+      return true;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      const errorString = err instanceof Error ? err.toString() : String(err);
+      
+      console.log(`🔍 ${serviceName} health check error details:`, { errorMessage, errorString, err });
+      
+      // Check for specific connection refused errors (service is definitely down)
+      if (errorString.includes('ERR_CONNECTION_REFUSED') || 
+          errorMessage.includes('CONNECTION_REFUSED') ||
+          errorMessage.includes('refused') ||
+          errorString.includes('net::ERR_CONNECTION_REFUSED')) {
+        console.log(`🔍 ${serviceName} health check (${url}): ❌ (connection refused - service is down)`);
+        return false;
+      }
+      
+      // Check for other network-related errors that indicate the service is down
+      if (errorMessage.includes('NetworkError') || 
+          errorMessage.includes('timeout') ||
+          errorMessage.includes('aborted')) {
+        console.log(`🔍 ${serviceName} health check (${url}): ❌ (network error - ${errorMessage})`);
+        return false;
+      }
+      
+      // If the error is about CORS, the service might be running but blocking access
+      if (errorMessage.includes('CORS') || errorMessage.includes('cors')) {
+        console.log(`🔍 ${serviceName} health check (${url}): ✅ (CORS blocked but service is running)`);
+        return true;
+      }
+      
+      // For "Failed to fetch" errors, default to service down since we can't distinguish
+      if (errorMessage.includes('Failed to fetch')) {
+        console.log(`🔍 ${serviceName} health check (${url}): ❌ (failed to fetch - service likely down)`);
+        return false;
+      }
+      
+      // For other errors, assume service is down
+      console.log(`🔍 ${serviceName} health check (${url}): ❌ (unknown error - ${errorMessage})`);
+      return false;
+    }
+  };
+
+  // Get service configuration with health checks
   const getServiceConfig = useCallback(async (): Promise<any> => {
     const provider = getMidnightProvider();
     if (!provider) {
@@ -176,9 +257,64 @@ export function MidnightWalletProvider({ children }: MidnightWalletProviderProps
     }
 
     try {
+      // Get the service URI configuration from the wallet
       const config = await provider.serviceUriConfig();
-      console.log('⚙️ Service configuration:', config);
-      return config;
+      console.log('⚙️ Service configuration from wallet:', config);
+      
+      // Perform health checks on each service with timeout
+      const healthCheckPromises = [
+        // Node health check - has specific health endpoint
+        checkServiceHealth('http://localhost:9944/health', 'Node'),
+        // Indexer health check - try root endpoint
+        checkServiceHealth('http://localhost:8088/', 'Indexer'),
+        // Proof server health check - try root endpoint  
+        checkServiceHealth('http://localhost:6300/', 'Proof Server')
+      ];
+
+      // Wait for health checks with timeout
+      const healthChecks = await Promise.allSettled(healthCheckPromises);
+
+      // Extract health status - if the fetch worked (even with CORS), service is probably up
+      const nodeHealth = healthChecks[0].status === 'fulfilled' ? healthChecks[0].value : false;
+      const indexerHealth = healthChecks[1].status === 'fulfilled' ? healthChecks[1].value : false; 
+      const proofServerHealth = healthChecks[2].status === 'fulfilled' ? healthChecks[2].value : false;
+
+      // Check if wallet is configured for local or remote services
+      const isUsingLocalServices = config.proverServerUri?.includes('localhost:6300');
+      const isUsingRemoteNode = config.substrateNodeUri?.includes('testnet-02.midnight.network');
+      const isUsingRemoteIndexer = config.indexerUri?.includes('testnet-02.midnight.network');
+
+      const healthStatus = {
+        ...config, // Include original config
+        node: nodeHealth,
+        indexer: indexerHealth,
+        proofServer: proofServerHealth,
+        // Also include the raw config for debugging
+        _rawConfig: config,
+        _dockerStatus: 'Services should be running on localhost:9944, localhost:8088, localhost:6300',
+        _configWarning: {
+          usingRemoteNode: isUsingRemoteNode,
+          usingRemoteIndexer: isUsingRemoteIndexer,
+          usingLocalProofServer: isUsingLocalServices,
+          message: isUsingRemoteNode || isUsingRemoteIndexer ? 
+            'Wallet is configured for remote testnet services. Some features may require local Docker services.' : 
+            'Wallet configured for local development services.'
+        }
+      };
+
+      console.log('🏥 Service health status:', healthStatus);
+      
+      // Add to window for debugging
+      if (typeof window !== 'undefined') {
+        (window as any).debugServiceHealth = {
+          checkNode: () => checkServiceHealth('http://localhost:9944/health', 'Node'),
+          checkIndexer: () => checkServiceHealth('http://localhost:8088/', 'Indexer'),
+          checkProofServer: () => checkServiceHealth('http://localhost:6300/', 'Proof Server'),
+          lastResult: healthStatus
+        };
+      }
+      
+      return healthStatus;
     } catch (err) {
       console.error('Failed to get service config:', err);
       throw err;

@@ -57,11 +57,17 @@ export const initializeMidnightClient = async () => {
   }
 };
 
+// Utility function to check if Midnight client is available
+export const isMidnightClientReady = () => {
+  const { midnightClient } = useStore.getState();
+  return !!midnightClient;
+};
+
 // Utility function to get the Midnight client from the store
 export const getMidnightClient = () => {
   const { midnightClient } = useStore.getState();
   if (!midnightClient) {
-    throw new Error('Midnight client not initialized');
+    throw new Error('Midnight client not initialized. Please connect your wallet first.');
   }
   return midnightClient;
 };

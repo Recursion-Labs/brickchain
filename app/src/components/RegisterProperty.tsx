@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../lib/store';
-import { getMidnightClient } from '../lib/midnight';
+import { getMidnightClient, isMidnightClientReady } from '../lib/midnight';
 import Navigation from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -81,6 +81,7 @@ export default function RegisterProperty() {
       setError(null);
       setProgress(10);
       
+      // Check if Midnight client is ready
       const midnightClient = getMidnightClient();
       setProgress(50);
       
@@ -92,7 +93,14 @@ export default function RegisterProperty() {
       
       setTimeout(() => setProgress(0), 1000);
     } catch (err) {
-      setError('Failed to register property');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to register property';
+      
+      if (errorMessage.includes('not initialized')) {
+        setError('Please connect your Midnight wallet first to register properties.');
+      } else {
+        setError('Failed to register property: ' + errorMessage);
+      }
+      
       console.error('Registration error:', err);
     } finally {
       setIsRegistering(false);
@@ -250,7 +258,7 @@ export default function RegisterProperty() {
                 <div className="space-y-4">
                   <Button
                     onClick={registerProperty}
-                    disabled={isRegistering || !hash || !isConnected}
+                    disabled={isRegistering || !hash || !isConnected || !isMidnightClientReady()}
                     className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
                     size="lg"
                   >
@@ -266,6 +274,18 @@ export default function RegisterProperty() {
                       </>
                     )}
                   </Button>
+                  
+                  {!isConnected && (
+                    <p className="text-sm text-yellow-400 text-center">
+                      Please connect your wallet first
+                    </p>
+                  )}
+                  
+                  {isConnected && !isMidnightClientReady() && (
+                    <p className="text-sm text-blue-400 text-center">
+                      Initializing Midnight client...
+                    </p>
+                  )}
                   
                   {isRegistering && progress > 0 && (
                     <Progress value={progress} className="w-full" />
