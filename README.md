@@ -1,4 +1,4 @@
-# 🏠 BrickChain -  makes property trading as simple as sending crypto
+# 🏠 BrickChain - Property Trading as Simple as Sending Crypto
 
 *Built during the MLH Midnight Hackathon - Transforming real estate with privacy-first blockchain technology*
 
@@ -31,13 +31,13 @@ With Midnight's privacy features, we create a compliant yet private foundation f
 
 ### Core Features Powered by Midnight:
 
-**🔐 Zero-Knowledge Proofs**  
+**🔐 Zero-Knowledge Proofs**
 Property owners prove ownership without revealing sensitive documents
 
-**🛡️ Shielded Transactions**  
+**🛡️ Shielded Transactions**
 Property fractions traded privately - balances remain confidential
 
-**📋 Selective Disclosure**  
+**📋 Selective Disclosure**
 Show regulators only relevant proofs without exposing entire portfolio
 
 ---
@@ -59,7 +59,7 @@ flowchart TD
 
 1. **Property Registration** → Document hash stored on-chain
 2. **Tokenization** → Smart contract mints fractional tokens
-3. **Trading** → Shielded transactions for private transfers  
+3. **Trading** → Shielded transactions for private transfers
 4. **Verification** → ZK proofs for ownership confirmation
 
 ---
@@ -73,35 +73,81 @@ flowchart TD
 
 ---
 
-## 🚀 Quick Start
+## 📚 Documentation
 
-```bash
-# Clone the repository
-git clone git@github.com:Recursion-Labs/brickchain.git
-cd brickchain
+We have comprehensive documentation to help you get started and build on BrickChain.
 
-# Install dependencies
-npm install
-
-# Build contracts
-cd contracts && npm run build
-
-# Run tests
-npm test
-
-# Start development environment
-npm run standalone
-```
+| Document | Description |
+|---|---|
+| **[Quick Start Guide](./docs/quick-start.md)** | A guide for hackathon participants to get a simple version of the DApp running as quickly as possible. |
+| **[Development Setup Guide](./docs/development-setup.md)** | A more detailed guide on how to set up your development environment for building on BrickChain. |
+| **[CLI Usage Guide](./docs/cli-usage.md)** | A comprehensive guide to the BrickChain CLI, with details on every command. |
+| **[Smart Contracts](./docs/smart-contracts.md)** | A deep dive into the smart contract architecture, features, and functions. |
+| **[Architecture](./docs/architecture.md)** | An overview of the system's architecture, components, and data flow. |
+| **[Deployment Guide](./docs/deployment.md)** | A guide for deploying BrickChain to local, testnet, and production environments. |
 
 ---
-## 👨‍💻 **Team Members**
+
+## 🚀 Execution & Results
+
+### Contract Compilation & Testing
+
+The smart contracts compile successfully, and all 15 tests pass, ensuring the on-chain logic is robust and reliable.
+
+```
+> @midnight-ntwrk/counter-contract@0.1.0 test:compile
+> npm run compact && vitest run
+
+> @midnight-ntwrk/counter-contract@0.1.0 compact
+> compact compile src/main.compact managed/main
+
+RUN  v3.2.4 /home/atharnex/github-uwu/brickchain/contracts
+
+ ✓ tests/main.test.ts (15 tests) 275ms
+
+ Test Files  1 passed (1)
+      Tests  15 passed (15)
+   Start at  08:59:56
+   Duration  845ms (transform 208ms, setup 0ms, collect 299ms, tests 275ms, environment 0ms, prepare 76ms)
+
+Compiling 10 circuits:
+```
+
+### Test Case Summary
+
+Our comprehensive test suite covers the following scenarios:
+
+*   **Token Operations:**
+    *   Mints tokens correctly
+    *   Transfers tokens correctly
+    *   Burns tokens correctly
+    *   Pauses and unpauses the token
+    *   Fails to mint when paused
+    *   Fails to transfer with insufficient balance
+
+*   **Property Operations:**
+    *   Registers a property correctly
+    *   Tokenizes a registered property
+    *   Transfers ownership
+    *   Deactivates a property
+
+*   **Validation Checks:**
+    *   Fails to mint a zero amount
+    *   Fails to burn a zero amount
+    *   Fails to tokenize an unregistered property
+    *   Fails to re-register a property
+    *   Initializes correctly
+
+---
+
+## 👨‍💻 Team Members
 
 | Role        | Name         | GitHub Profile |
 |-------------|--------------|----------------|
 | **Lead**     | Md Athar Jamal Makki  | [@atharhive](https://github.com/atharhive)       |
 | **Frontend** | Akshad Jogi  | [@akshad-exe](https://github.com/akshad-exe)     |
 |  **Smart Contract Dev** | Ayush Sarkar  | [@dev-Ninjaa](https://github.com/dev-Ninjaa)      |
-| **Backend**| Samarth Mahapatra | [@samarth3301](https://github.com/samarth3301) | 
+| **Backend**| Samarth Mahapatra | [@samarth3301](https://github.com/samarth3301) |
 
 ---
 
