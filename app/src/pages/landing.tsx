@@ -80,27 +80,9 @@ export default function LandingPage() {
             </p>
 
             {/* CTA Section */}
-            <div className="flex flex-col items-center space-y-6">
+            <div className="flex flex-col items-center">
               <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 shadow-2xl">
                 <WalletConnect />
-              </div>
-              
-              <div className="flex flex-wrap justify-center gap-4">
-                <Button 
-                  size="lg" 
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
-                >
-                  <Building2 className="w-5 h-5 mr-2" />
-                  Start Tokenizing
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="lg"
-                  className="border-white/30 text-white hover:bg-white/10 px-8 py-3 rounded-xl font-semibold backdrop-blur-sm"
-                >
-                  <FileText className="w-5 h-5 mr-2" />
-                  Learn More
-                </Button>
               </div>
             </div>
           </div>
